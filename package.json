@@ -20,6 +20,7 @@
     "gun": "^0.2020.1240",
     "ipfs": "^0.66.1",
     "jsonwebtoken": "^9.0.2",
+    "libsodium-wrappers": "^0.7.15",
     "orbit-db": "^0.29.0",
     "orbit-db-access-controllers": "^0.4.0",
     "orbit-db-keystore": "^2.0.0"

@@ -28,3 +28,4 @@ coverage/*
 
 keys/
 orbitdb/ 
+reset-dir.bat
