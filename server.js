@@ -485,7 +485,12 @@ async function startServer() {
           const segments = path.split(/(%23.*?)(\/)/); // Split on the first occurrence of '%23' followed by any characters up to but not including '/'
 
           const basePath = segments[1]; // This will capture '%23Fabstir214_users'
-          const hashAndBeyond = segments[3]; // This will capture 'PbIlCHlizVLefyK7gr%2FFvB01Zf4sej6M2%2BQU8eqRjDw%3D'
+          let hashAndBeyond = segments[3]; // This will capture 'lKclCwl0pfr9aGabcrHhZJIpOfQarI1u7CZxr1D8thQ%3D/'
+
+          // Remove the trailing '/' if it exists
+          if (hashAndBeyond.endsWith("/")) {
+            hashAndBeyond = hashAndBeyond.slice(0, -1);
+          }
 
           const hashSegments = hashAndBeyond.split(/\/(.+)/); // Split on the first '/'
           const providedHash = hashSegments[0];
@@ -495,7 +500,9 @@ async function startServer() {
           });
 
           const calculatedHashParts = calculatedHash.split("/");
-          const calculatedHashPrefix = calculatedHashParts[0];
+          const calculatedHashPrefix = encodeURIComponent(
+            calculatedHashParts[0]
+          );
 
           // Verify that the provided hash matches the calculated hash prefix
           if (providedHash !== calculatedHashPrefix) {
