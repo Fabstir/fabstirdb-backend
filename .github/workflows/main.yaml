@@ -23,15 +23,11 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       
-      - name: Set outputs
-        id: vars
-        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-      
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
           context: ./
-          tags: ammarhaiderak/fabstir-db:${{steps.vars.outputs.sha_short}}
+          tags: ammarhaiderak/fabstir-db:${{github.sha}}
           push: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Image Digest
@@ -52,10 +48,9 @@ jobs:
         run: |
           git config user.email "ammarkhaliq@gmail.com"
           git config user.name "Ammar Haider"
-          short_sha=$(git rev-parse --short HEAD)
-          sed -i "s#ammarhaiderak.*#ammarhaiderak/fabstir-db:${short_sha}#g" fabstirdb/deployment.yaml
+          sed -i "s#ammarhaiderak.*#ammarhaiderak/fabstir-db:${{github.sha}}#g" fabstirdb/deployment.yaml
           git add -A
-          git commit -am "Update image for ${short_sha}"
+          git commit -am "Update image for ${{github.sha}}"
       - name: Pushing Updated Image Tag
         run: |
           export GITHUB_TOKEN=${{ secrets.G_TOKEN }}
