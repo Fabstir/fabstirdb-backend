@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { initUserDB } from "./initUserDB.js";
+import { pinHashToPinningService, initUserDB } from "./initUserDB.js";
 import { initAclDB } from "./initAclDB.js";
 import crypto from "crypto";
 import Gun from "gun";
@@ -173,13 +173,19 @@ async function startServer() {
 
         if (publicKey === "*") {
           accessRights.allowedPublicKeys = ["*"];
-          await aclStore.put(accessRights);
+          const cid = await aclStore.put(accessRights);
+          const pinningServiceResponse = await pinHashToPinningService(cid);
+          console.log("PinningService:", pinningServiceResponse);
+
           return res.send({ message: "Write access granted to all users." });
         }
 
         if (!accessRights.allowedPublicKeys.includes(publicKey)) {
           accessRights.allowedPublicKeys.push(publicKey);
-          await aclStore.put(accessRights);
+          const cid = await aclStore.put(accessRights);
+          const pinningServiceResponse = await pinHashToPinningService(cid);
+          console.log("PinningService:", pinningServiceResponse);
+
           res.send({ message: "Write access granted successfully." });
         } else {
           res.send({ message: "Public key already has access." });
@@ -244,7 +250,10 @@ async function startServer() {
             accessRights.allowedPublicKeys.filter((key) => key !== publicKey);
 
           // Update the access rights in the store
-          await aclStore.put(accessRights);
+          const cid = await aclStore.put(accessRights);
+          const pinningServiceResponse = await pinHashToPinningService(cid);
+          console.log("PinningService:", pinningServiceResponse);
+
           res.json({ message: "Write access removed successfully." });
         } else {
           res.status(404).json({
@@ -294,11 +303,13 @@ async function startServer() {
       const { alias, publicKey, hashedPassword } = req.body;
 
       try {
-        await userDb.put({
+        const cid = await userDb.put({
           _id: alias,
           publicKey,
           hashedPassword,
         });
+        const pinningServiceResponse = await pinHashToPinningService(cid);
+        console.log("PinningService:", pinningServiceResponse);
 
         // Create a more persistent JWT here if needed
         const token = jwt.sign({ alias, pub: publicKey }, JWT_SECRET, {
@@ -314,11 +325,13 @@ async function startServer() {
           allowedPublicKeys: [publicKey],
         });
 
-        await aclStore.put({
+        const cid2 = await aclStore.put({
           _id: userPath,
           owner: publicKey,
           allowedPublicKeys: [publicKey], // Initially allow only self
         });
+        const pinningServiceResponse2 = await pinHashToPinningService(cid2);
+        console.log("PinningService:", pinningServiceResponse2);
 
         res.json({ message: "User registered successfully", token });
       } catch (error) {
@@ -521,7 +534,10 @@ async function startServer() {
                 .json({ err: "Data under this hash already exists." });
             }
 
-            await userDb.put({ _id: fullPath, data });
+            const cid = await userDb.put({ _id: fullPath, data });
+            const pinningServiceResponse = await pinHashToPinningService(cid);
+            console.log("PinningService:", pinningServiceResponse);
+
             res.status(201).json({
               message: "Data saved successfully under hash",
               path: fullPath,
@@ -536,6 +552,11 @@ async function startServer() {
           // Regular data saving without hash
           try {
             const result = await userDb.put({ _id: path, data });
+            const pinningServiceResponse = await pinHashToPinningService(
+              result
+            );
+            console.log("PinningService:", pinningServiceResponse);
+
             res.json(result);
           } catch (error) {
             console.error("Failed to save data:", error);
