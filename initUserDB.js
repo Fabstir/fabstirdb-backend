@@ -5,6 +5,8 @@ import axios from "axios";
 import { config } from "dotenv";
 config();
 
+const orbitDBPath = process.env.ORBITDB_PATH || './orbitdb';
+
 export async function pinHashToPinningService(hash) {
   const pinataApiKey = process.env.PINATA_API_KEY;
   const pinataSecretApiKey = process.env.PINATA_API_SECRET;
@@ -41,7 +43,7 @@ export async function pinHashToPinningService(hash) {
  */
 export async function initUserDB() {
   const ipfs = await create({
-    repo: "./orbitdb/repo",
+    repo: `${orbitDBPath}/repo`,
     // config: {
     //   Addresses: {
     //     Swarm: [
