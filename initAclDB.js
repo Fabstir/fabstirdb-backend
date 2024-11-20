@@ -2,6 +2,9 @@ import { create } from "ipfs";
 import OrbitDB from "orbit-db";
 import Identities from "orbit-db-identity-provider";
 
+
+const orbitDBPath = process.env.ORBITDB_PATH || './orbitdb';
+const keysPath = process.env.KEYS_PATH || './keys';
 /**
  * Initializes the Access Control List (ACL) database.
  * @async
@@ -12,13 +15,13 @@ export async function initAclDB() {
   // Create an identity
   const identity = await Identities.createIdentity({
     id: "server", // This can be any string that uniquely identifies the server
-    identityKeysPath: "./keys",
+    identityKeysPath: keysPath,
   });
 
   console.log("Created identity:", identity);
 
   const ipfsOptions = {
-    repo: "./orbitdb/acl",
+    repo: `${orbitDBPath}/acl`,
     config: {
       Addresses: {
         Swarm: [
