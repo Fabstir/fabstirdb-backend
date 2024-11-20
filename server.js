@@ -56,7 +56,10 @@ async function startServer() {
         req.user = decoded; // Attaching user info to request object
         next(); // Pass control to the next middleware function
       } catch (ex) {
-        res.status(400).json({ err: "Invalid token." });
+        if (ex.name === "TokenExpiredError") {
+          return res.status(401).json({ err: "Token expired." });
+        }
+        return res.status(401).json({ err: "Invalid token." });
       }
     }
 
@@ -367,6 +370,46 @@ async function startServer() {
       }
     }
 
+    const generateTokens = (user) => {
+      const accessToken = jwt.sign(
+        { alias: user._id || user.alias, pub: user.publicKey || user.pub },
+        JWT_SECRET,
+        { expiresIn: "1h" } // Access token valid for 2 minutes
+      );
+
+      const refreshToken = jwt.sign(
+        { alias: user._id || user.alias, pub: user.publicKey || user.pub },
+        JWT_SECRET,
+        { expiresIn: "7d" } // Refresh token valid for 7 days
+      );
+
+      console.log("Generated tokens:", {
+        accessToken,
+        refreshToken,
+        expiresIn: {
+          accessToken: "1h",
+          refreshToken: "7d",
+        },
+      });
+
+      return { accessToken, refreshToken };
+    };
+
+    app.post("/refresh-token", (req, res) => {
+      const { refreshToken } = req.body;
+      if (!refreshToken) {
+        return res.status(401).json({ err: "Refresh token is required" });
+      }
+
+      try {
+        const decoded = jwt.verify(refreshToken, JWT_SECRET);
+        const newTokens = generateTokens(decoded);
+        res.json(newTokens);
+      } catch (error) {
+        res.status(403).json({ err: "Invalid refresh token" });
+      }
+    });
+
     /**
      * Express route handler for authenticating a user.
      * @async
@@ -386,12 +429,8 @@ async function startServer() {
           const userData = userDataEntries[0]; // Assume the first entry is the user data
           const isMatch = await bcrypt.compare(pass, userData.hashedPassword);
           if (isMatch) {
-            const token = jwt.sign(
-              { alias: userData.alias, pub: userData.publicKey },
-              JWT_SECRET,
-              { expiresIn: "1h" }
-            );
-            res.json({ message: "Authentication successful", token });
+            const tokens = generateTokens(userData);
+            res.json({ message: "Authentication successful", ...tokens });
           } else {
             res.status(401).json({ err: "Authentication failed" });
           }
@@ -517,7 +556,7 @@ async function startServer() {
             calculatedHashParts[0]
           );
 
-          // Verify that the provided hash matches the calculated hash prefix
+          // Verify that the provided hash matches the calculated hash
           if (providedHash !== calculatedHashPrefix) {
             return res.status(400).json({
               err: "Hash mismatch: The provided hash does not match the calculated hash of the data.",
