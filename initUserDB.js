@@ -5,7 +5,7 @@ import axios from "axios";
 import { config } from "dotenv";
 config();
 
-const orbitDBPath = process.env.ORBITDB_PATH || './orbitdb';
+const orbitDBPath = process.env.ORBITDB_PATH || "./orbitdb";
 
 export async function pinHashToPinningService(hash) {
   const pinataApiKey = process.env.PINATA_API_KEY;

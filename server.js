@@ -56,6 +56,7 @@ async function startServer() {
         req.user = decoded; // Attaching user info to request object
         next(); // Pass control to the next middleware function
       } catch (ex) {
+        console.error("Token error:", ex);
         if (ex.name === "TokenExpiredError") {
           return res.status(401).json({ err: "Token expired." });
         }
@@ -491,6 +492,7 @@ async function startServer() {
       const { path } = req.body; // Extract path from request body
 
       try {
+        console.log("Fetching data at path:", path);
         const items = await userDb.get(path);
         console.log("Fetched data:", items);
         res.json(items);
@@ -605,6 +607,20 @@ async function startServer() {
       }
     );
 
+    // Add helper function
+    const findEntriesByPathPrefix = async (db, pathPrefix) => {
+      try {
+        // Get all entries from the database
+        const allEntries = await db.get("");
+
+        // Filter entries where _id starts with pathPrefix
+        return allEntries.filter((entry) => entry._id.startsWith(pathPrefix));
+      } catch (error) {
+        console.error("Error finding entries:", error);
+        throw error;
+      }
+    };
+
     /**
      * Express route handler for deleting data at a specified path.
      * Ensures that data at paths containing hashes (immutable data) cannot be deleted.
@@ -617,21 +633,33 @@ async function startServer() {
      * @throws {Error} If there is an error while deleting the data.
      */
     app.delete("/update-data", authenticate, async (req, res) => {
-      const { path } = req.body; // Extract path from the request body
+      const { path } = req.body;
 
-      // Check if the path includes a hash segment, indicating immutable content
       if (path.includes("%23")) {
-        return res
-          .status(403)
-          .json({ err: "Deletion of immutable hashed data is not allowed." });
+        return res.status(403).json({
+          err: "Deletion of immutable hashed data is not allowed.",
+        });
       }
 
       try {
-        await userDb.del(path);
-        res.json({ message: "Data deleted successfully" });
+        const entries = await findEntriesByPathPrefix(userDb, path);
+
+        if (entries.length === 0) {
+          return res.json({ message: "No entries found to delete" });
+        }
+
+        // Delete each matching entry
+        for (const entry of entries) {
+          await userDb.del(entry._id);
+        }
+
+        res.json({
+          message: "Data deleted successfully",
+          deletedPaths: entries.map((e) => e._id),
+        });
       } catch (error) {
-        console.error("Failed to delete data:", error);
-        res.status(500).json({ err: "Server Error" });
+        console.error("Error deleting data:", error);
+        res.status(500).json({ err: "Server error while deleting data" });
       }
     });
 
