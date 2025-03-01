@@ -9,6 +9,8 @@ const orbitDBPath = process.env.ORBITDB_PATH || "./orbitdb";
 
 export async function pinHashToPinningService(hash) {
   const pinataApiKey = process.env.PINATA_API_KEY;
+  if (!pinataApiKey) return null;
+
   const pinataSecretApiKey = process.env.PINATA_API_SECRET;
   const pinataJwt = process.env.PINATA_JWT;
   const pinataBaseUrl = process.env.PINATA_BASE_URL;
