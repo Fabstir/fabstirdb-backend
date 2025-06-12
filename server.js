@@ -1,3 +1,15 @@
+// Polyfill for Promise.withResolvers (Node.js v22+ feature)
+if (!Promise.withResolvers) {
+  Promise.withResolvers = function () {
+    let resolve, reject;
+    const promise = new Promise((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  };
+}
+
 import express from "express";
 import cors from "cors";
 import jwt from "jsonwebtoken";
