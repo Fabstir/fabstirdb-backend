@@ -28,11 +28,36 @@ let userDb, aclStore;
  */
 async function startServer() {
   try {
-    aclStore = await initAclDB(); // Initializes the ACL store
-    userDb = await initUserDB(); // Initializes the user database
+    aclStore = await initAclDB();
+    userDb = await initUserDB();
 
     const app = express();
-    app.use(cors());
+
+    // CORS configuration - REPLACE the simple app.use(cors()) with this:
+    const corsOptions = {
+      origin: [
+        "https://ui.fabstirplayer.com",
+        "https://fabstirplayer.com",
+        "http://localhost:3000", // for development
+        "http://localhost:5214", // for development
+      ],
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Accept",
+        "Origin",
+      ],
+      credentials: true,
+      optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
+    };
+
+    app.use(cors(corsOptions));
+
+    // Add explicit OPTIONS handler for preflight requests
+    app.options("*", cors(corsOptions));
+
     app.use(express.json({ limit: "50mb" }));
 
     /**
